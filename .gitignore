@@ -1,0 +1,13 @@
+# Entorno virtual de Python
+backend/venv/
+
+# Dependencias de Node.js
+frontend/node_modules/
+
+# Variables de entorno
+.env
+
+# Python
+__pycache__/
+*.pyc
+nginx/certs/*.key
