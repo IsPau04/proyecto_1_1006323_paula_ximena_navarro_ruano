@@ -5,17 +5,21 @@ services:
     image: mongo:8.0
     container_name: mongodb
     restart: unless-stopped
+    command: ["mongod", "--bind_ip_all", "--port", "${MONGO_PORT:?Falta MONGO_PORT en .env}"]
     environment:
       MONGO_INITDB_DATABASE: ${MONGO_DATABASE:?Falta MONGO_DATABASE en .env}
+      MONGO_PORT: "${MONGO_PORT:?Falta MONGO_PORT en .env}"
     volumes:
       - mongo_data:/data/db
     networks:
       proyecto_network:
-        ipv4_address: 192.168.162.15
+        ipv4_address: ${MONGODB_IP:?Falta MONGODB_IP en .env}
     healthcheck:
       test:
         - CMD
         - mongosh
+        - --port
+        - "${MONGO_PORT:?Falta MONGO_PORT en .env}"
         - --quiet
         - --eval
         - "quit(db.adminCommand({ping: 1}).ok ? 0 : 1)"
@@ -33,18 +37,21 @@ services:
       MONGO_HOST: ${MONGO_HOST:?Falta MONGO_HOST en .env}
       MONGO_PORT: "${MONGO_PORT:?Falta MONGO_PORT en .env}"
       MONGO_DATABASE: ${MONGO_DATABASE:?Falta MONGO_DATABASE en .env}
+      BACKEND_HOST: ${BACKEND_HOST:?Falta BACKEND_HOST en .env}
+      BACKEND_PORT: "${BACKEND_PORT:?Falta BACKEND_PORT en .env}"
+      FLASK_DEBUG: "${FLASK_DEBUG:?Falta FLASK_DEBUG en .env}"
     depends_on:
       mongodb:
         condition: service_healthy
     networks:
       proyecto_network:
-        ipv4_address: 192.168.162.14
+        ipv4_address: ${BACKEND_IP:?Falta BACKEND_IP en .env}
     healthcheck:
       test:
         - CMD
         - python
         - -c
-        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/api/productos', timeout=3)"
+        - "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.environ['BACKEND_PORT'] + '/api/productos', timeout=3)"
       interval: 10s
       timeout: 5s
       retries: 5
@@ -57,19 +64,22 @@ services:
     restart: unless-stopped
     networks:
       proyecto_network:
-        ipv4_address: 192.168.162.13
+        ipv4_address: ${FRONTEND_IP:?Falta FRONTEND_IP en .env}
 
   gateway:
     image: nginx:alpine
     container_name: proyecto1-gateway
     restart: unless-stopped
+    environment:
+      BACKEND_PORT: "${BACKEND_PORT:?Falta BACKEND_PORT en .env}"
+      HTTPS_PORT: "${HTTPS_PORT:?Falta HTTPS_PORT en .env}"
     ports:
-      - "127.0.0.1:8082:80"
-      - "127.0.0.1:8443:443"
+      - "${HOST_BIND_IP:?Falta HOST_BIND_IP en .env}:${HTTP_PORT:?Falta HTTP_PORT en .env}:80"
+      - "${HOST_BIND_IP:?Falta HOST_BIND_IP en .env}:${HTTPS_PORT:?Falta HTTPS_PORT en .env}:443"
     volumes:
       - type: bind
-        source: ./nginx/nginx.conf
-        target: /etc/nginx/nginx.conf
+        source: ./nginx/nginx.conf.template
+        target: /etc/nginx/templates/default.conf.template
         read_only: true
         bind:
           create_host_path: false
@@ -86,14 +96,14 @@ services:
         condition: service_started
     networks:
       proyecto_network:
-        ipv4_address: 192.168.162.12
+        ipv4_address: ${GATEWAY_IP:?Falta GATEWAY_IP en .env}
 
 networks:
   proyecto_network:
     external: true
-    name: proyecto_network
+    name: ${DOCKER_NETWORK_NAME:?Falta DOCKER_NETWORK_NAME en .env}
 
 volumes:
   mongo_data:
     external: true
-    name: proyecto1_mongo_data
+    name: ${MONGO_VOLUME_NAME:?Falta MONGO_VOLUME_NAME en .env}

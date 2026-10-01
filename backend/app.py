@@ -211,7 +211,8 @@ def eliminar_producto(id):
 
 if __name__ == "__main__":
     app.run(
-        host="0.0.0.0",
-        port=5000,
-        debug=True
+        host=os.getenv("BACKEND_HOST", "0.0.0.0"),
+        port=int(os.getenv("BACKEND_PORT", "5000")),
+        debug=os.getenv("FLASK_DEBUG", "false").lower()
+        in ("true", "1", "yes")
     )

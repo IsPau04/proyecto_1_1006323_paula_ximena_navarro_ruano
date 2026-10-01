@@ -11,3 +11,10 @@ frontend/node_modules/
 __pycache__/
 *.pyc
 nginx/certs/*.key
+
+# Respaldos locales
+*.bak
+
+# Archivos temporales de Word
+~$*
+~WRL*.tmp
